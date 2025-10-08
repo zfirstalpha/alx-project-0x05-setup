@@ -1,16 +1,24 @@
 import ImageCard from "@/components/common/ImageCard";
+import useFetchData from "@/hooks/useFetchData";
 import { ImageProps } from "@/interfaces";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const Home: React.FC = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [imageUrl, setImageUrl] = useState<string>("");
-  const [generatedImages, setGeneratedImages] = useState<ImageProps[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleGenerateImage = async () => {
-    console.log("Generating Images");
+  const { isLoading, responseData, generatedImages, fetchData } = useFetchData<any, { prompt: string }>();
+
+  const handleGenerateImage = () => {
+    if (!prompt.trim()) return;
+    fetchData('/api/generate-image', { prompt });
   };
+
+  useEffect(() => {
+    if (!isLoading) {
+      setImageUrl(responseData?.message);
+    }
+  }, [isLoading, responseData]);
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4">
@@ -32,12 +40,11 @@ const Home: React.FC = () => {
             onClick={handleGenerateImage}
             className="w-full p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
           >
-            {/* {isLoading ? "Loading..." : "Generate Image"} */}
-            Generate Image
+            {isLoading ? "Loading..." : "Generate Image"}
           </button>
         </div>
 
-        {imageUrl && (
+        {responseData?.message && (
           <ImageCard
             action={() => setImageUrl(imageUrl)}
             imageUrl={imageUrl}
@@ -45,6 +52,24 @@ const Home: React.FC = () => {
           />
         )}
       </div>
+
+      {generatedImages.length > 0 && (
+        <div className="mt-6 w-full max-w-[1100px]">
+          <h3 className="text-xl text-center mb-4">Generated Images</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-2 overflow-y-scroll h-96 border">
+            {generatedImages.map(({ imageUrl, prompt }: ImageProps, index) => (
+              <ImageCard
+                key={index}
+                action={() => setImageUrl(imageUrl)}
+                imageUrl={imageUrl}
+                prompt={prompt}
+                width="w-full"
+                height="h-40"
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

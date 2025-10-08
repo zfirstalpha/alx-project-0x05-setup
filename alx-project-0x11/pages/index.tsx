@@ -1,6 +1,6 @@
 import ImageCard from "@/components/common/ImageCard";
 import { ImageProps } from "@/interfaces";
-import { useState } from "react";
+import React, { useState } from "react";
 
 const Home: React.FC = () => {
   const [prompt, setPrompt] = useState<string>("");
@@ -9,7 +9,24 @@ const Home: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleGenerateImage = async () => {
-    console.log("Generating Images");
+    if (!prompt.trim()) return;
+
+    setIsLoading(true);
+    const resp = await fetch('/api/generate-image', {
+      method: 'POST',
+      body: JSON.stringify({ prompt }),
+      headers: { 'Content-type': 'application/json' }
+    });
+
+    if (!resp.ok) {
+      setIsLoading(false);
+      return;
+    }
+
+    const data = await resp.json();
+    setImageUrl(data?.message);
+    setGeneratedImages((prev) => [...prev, { imageUrl: data?.message, prompt }]);
+    setIsLoading(false);
   };
 
   return (
@@ -32,8 +49,7 @@ const Home: React.FC = () => {
             onClick={handleGenerateImage}
             className="w-full p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
           >
-            {/* {isLoading ? "Loading..." : "Generate Image"} */}
-            Generate Image
+            {isLoading ? "Loading..." : "Generate Image"}
           </button>
         </div>
 
@@ -45,6 +61,24 @@ const Home: React.FC = () => {
           />
         )}
       </div>
+
+      {generatedImages.length > 0 && (
+        <div className="mt-6 w-full max-w-[1100px]">
+          <h3 className="text-xl text-center mb-4">Generated Images</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-2 overflow-y-scroll h-96 border">
+            {generatedImages.map(({ imageUrl, prompt }: ImageProps, index) => (
+              <ImageCard
+                key={index}
+                action={() => setImageUrl(imageUrl)}
+                imageUrl={imageUrl}
+                prompt={prompt}
+                width="w-full"
+                height="h-40"
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
